@@ -1,6 +1,3 @@
-# tree.py
-from PyQt5.QtCore import pyqtSignal, QObject
-
 class TreeNode:
     def __init__(self, key, data):
         self.key = key
@@ -9,22 +6,9 @@ class TreeNode:
         self.left = None
         self.right = None
 
-class AVLTreeVisualizer(QObject):
-    update_visualization = pyqtSignal(str)
-
-    def visualize_insert(self, key):
-        visualization = f"Performing AVL tree insert for key: {key}"
-        self.update_visualization.emit(visualization)
-
-    def visualize_search(self, key):
-        visualization = f"Performing AVL tree search for key: {key}"
-        self.update_visualization.emit(visualization)
-
-
 class AVLTree:
-    def __init__(self, visualizer=None):
-        self.root = None
-        self.visualizer = visualizer
+    def __init__(self):
+       self.root = None
 
     def height(self, node):
         if not node:
@@ -63,9 +47,6 @@ class AVLTree:
     def insert(self, root, key, data):
         if not root:
             return TreeNode(key, data)
-        
-        if self.visualizer:
-            self.visualizer.visualize_insert(key)
 
         if key < root.key:
             root.left = self.insert(root.left, key, data)
@@ -140,11 +121,14 @@ class AVLTree:
     def visualize_tree(self):
         return self._visualize_tree(self.root)
 
-    def _visualize_tree(self, node, level=0):
+    def _visualize_tree(self, node, level=0, prefix="Root:"):
         if node is None:
             return ""
-        res = ""
-        res += "  " * (level - 1) + "+--" * (level > 0) + str(node.key) + "\n"
-        res += self._visualize_tree(node.left, level + 1)
-        res += self._visualize_tree(node.right, level + 1)
+        
+        res = "  " * level + prefix + f" {node.key}\n"
+        
+        if node.left is not None or node.right is not None:
+            res += self._visualize_tree(node.left, level + 1, "├── Left:")
+            res += self._visualize_tree(node.right, level + 1, "└── Right:")
+        
         return res

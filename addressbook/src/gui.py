@@ -2,20 +2,17 @@
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QTextEdit, QTreeView, QFileSystemModel
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
 from PyQt5.QtCore import QTimer
-from src.tree import AVLTree, AVLTreeVisualizer
+from src.tree import AVLTree
 import sys
 import csv
 import os
 
 class AddressBookGUI(QWidget):
-    def __init__(self, visualizer=None):
+    def __init__(self):
         super().__init__()
         
         self.setWindowTitle("Address Book Management System")
         self.setGeometry(100, 100, 800, 600)
-
-        self.avl_visualizer = AVLTreeVisualizer()
-        self.avl_tree = AVLTree(visualizer=self.avl_visualizer)
 
         # Components
         self.name_input = QLineEdit(self)
@@ -68,7 +65,6 @@ class AddressBookGUI(QWidget):
         # Connect Signals
         self.add_button.clicked.connect(self.add_contact)
         self.search_button.clicked.connect(self.search_contact)
-        self.avl_visualizer.update_visualization.connect(self.update_visualization_text)
 
         # Load Contacts on startup
         self.load_contacts()
@@ -94,11 +90,6 @@ class AddressBookGUI(QWidget):
             self.last_modification_time = current_modification_time
             return True
         return False
-
-    def update_visualization_text(self, text):
-        # Update the display area with AVL tree visualization
-        self.display_area.clear()
-        self.display_area.append(text)
 
     def load_contacts(self):
     # Define the CSV file path
