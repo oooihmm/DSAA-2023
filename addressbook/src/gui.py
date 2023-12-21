@@ -1,7 +1,5 @@
-# src/gui.py
 from PyQt5.QtWidgets import QApplication, QWidget, QVBoxLayout, QLabel, QLineEdit, QPushButton, QTextEdit, QTreeView, QFileSystemModel
 from PyQt5.QtGui import QStandardItemModel, QStandardItem
-from PyQt5.QtCore import QTimer
 from src.tree import AVLTree
 import sys
 import csv
@@ -12,7 +10,7 @@ class AddressBookGUI(QWidget):
         super().__init__()
         
         self.setWindowTitle("Address Book Management System")
-        self.setGeometry(100, 100, 800, 600)
+        self.setGeometry(100, 100, 800, 1000)
 
         # Components
         self.name_input = QLineEdit(self)
@@ -24,6 +22,8 @@ class AddressBookGUI(QWidget):
         self.display_area = QTextEdit(self)
         self.tree_view = QTreeView(self)
         self.tree_model = QStandardItemModel()
+        self.tree_structure_display = QTextEdit(self)
+        self.tree_structure_display.setReadOnly(True)
 
         # AVL Tree
         self.avl_tree = AVLTree()
@@ -55,6 +55,9 @@ class AddressBookGUI(QWidget):
         # Tree View
         main_layout.addWidget(QLabel("Contacts"))
         main_layout.addWidget(self.tree_view)
+        
+        main_layout.addWidget(QLabel("AVL Tree Structure"))
+        main_layout.addWidget(self.tree_structure_display)
 
         self.setLayout(main_layout)
 
@@ -69,28 +72,6 @@ class AddressBookGUI(QWidget):
         # Load Contacts on startup
         self.load_contacts()
 
-        # Initialize last_modification_time
-        self.last_modification_time = 0
-
-        # Timer for periodically checking CSV file changes
-        self.timer = QTimer(self)
-        self.timer.timeout.connect(self.check_csv_changes)
-        self.timer.start(5000)  # 5 seconds interval (adjust as needed)
-
-    def check_csv_changes(self):
-        # Check if the CSV file has been modified
-        if self.is_csv_modified():
-            # Reload contacts from the updated CSV file
-            self.load_contacts()
-
-    def is_csv_modified(self):
-        # Compare the current modification time with the stored one
-        current_modification_time = os.path.getmtime("data/contacts.csv")
-        if current_modification_time != self.last_modification_time:
-            self.last_modification_time = current_modification_time
-            return True
-        return False
-
     def load_contacts(self):
     # Define the CSV file path
       csv_file_path = "data/contacts.csv"
@@ -102,19 +83,23 @@ class AddressBookGUI(QWidget):
               next(csv_reader)  # Skip the header row
               for row in csv_reader:
                   name, email, phone = row
-                  new_contact = {"이름": name, "이메일": email, "전화번호": phone}
-                  self.avl_tree.insert_contact(name, new_contact)
-                  self.add_contact_to_tree(new_contact)
+                  self.avl_tree.insert_data(name, email, phone)
+                  self.add_contact_to_tree({"이름": name, "이메일": email, "전화번호": phone})
 
       except FileNotFoundError:
           print(f"CSV file not found at {csv_file_path}")
 
       except Exception as e:
           print(f"Error loading contacts from CSV: {e}")
+    
+    def update_tree_structure_display(self):
+        tree_structure = self.avl_tree.visualize_tree(self.avl_tree.root)
+        self.tree_structure_display.setPlainText(tree_structure)
 
     def add_contact_to_tree(self, contact):
         item = QStandardItem(f"{contact['이름']} | {contact['이메일']} | {contact['전화번호']}")
         self.tree_model.appendRow(item)
+        self.update_tree_structure_display()
 
     def add_contact(self):
         # Get user input
@@ -126,11 +111,8 @@ class AddressBookGUI(QWidget):
             self.display_area.setText("Please fill in all fields.")
             return
 
-        # Create contact dictionary
-        new_contact = {"이름": name, "이메일": email, "전화번호": phone}
-
         # Add contact to the AVL tree
-        self.avl_tree.insert_contact(name, new_contact)
+        self.avl_tree.insert_data(name, email, phone)
 
         # Update the display area
         self.display_area.clear()
@@ -145,11 +127,11 @@ class AddressBookGUI(QWidget):
         self.save_contacts_to_csv()
 
         # Update tree view with the new contact
-        self.add_contact_to_tree(new_contact)
+        self.add_contact_to_tree({"이름": name, "이메일": email, "전화번호": phone})
 
     def save_contacts_to_csv(self):
         # Get all contacts from AVL tree
-        contacts = list(self.avl_tree.avl_tree_in_order(self.avl_tree.root))
+        contacts = list(self.avl_tree.inorder_traversal(self.avl_tree.root))
 
         # Define the CSV file path
         csv_file_path = "data/contacts.csv"
@@ -174,14 +156,24 @@ class AddressBookGUI(QWidget):
         self.tree_model.clear()
 
         # Search contacts
-        results = self.avl_tree.search_contact_all(search_query)
+        results = self.avl_tree.search_data(search_query)
 
         # Update tree view with search result
         if results:
-            for result in results:
-                self.add_contact_to_tree(result.data)
+            if search_query == "":
+                self.display_area.setText(f"No search terms entered")
+            else:
+                for result in results:
+                    # Assuming result is a node, create a dictionary for add_contact_to_tree
+                    contact_dict = {
+                        "이름": result.name,
+                        "이메일": result.email,
+                        "전화번호": result.phone
+                    }
+                    self.display_area.setText(f"Search success")
+                    self.add_contact_to_tree(contact_dict)
         else:
-            self.display_area.setText("Contact not found.")
+            self.display_area.setText(f"No contacts found matching: {search_query}")
 
 def run_gui():
     app = QApplication(sys.argv)
